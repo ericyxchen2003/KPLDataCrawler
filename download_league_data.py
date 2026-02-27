@@ -5,7 +5,7 @@ Download all battle data for a league from 王者荣耀KPL比赛 (King Pro Leagu
 Given a league_id, loads league data (fetching and saving league_data/league_<league_id>.json
 from the API if missing), then for each match fetches match data to get battle_ids,
 then fetches each battle's data. Writes a single JSON file: a list of battles,
-each of the form { "battle_id": ..., "data": ... }.
+each of the form { "battle_id": ..., "data": { "match_id": ..., ... } }.
 """
 
 import json
@@ -95,7 +95,7 @@ def download_league_battles(
     """
     Download all battle data for the league and save to a single JSON file.
 
-    Each item in the output list is { "battle_id": ..., "data": ... }.
+    Each item in the output list is { "battle_id": ..., "data": { "match_id": ..., ... } }.
     """
     battle_tuples = collect_battle_ids_from_league(league_data_dir, league_id)
     if not battle_tuples:
@@ -113,9 +113,11 @@ def download_league_battles(
         if data is None:
             tqdm.write(f"Warning: skipped battle {battle_id} (no 'data' in response)")
             continue
+        # Add match_id inside data so each battle indicates which match it belongs to
+        data_with_match = {**data, "match_id": match_id}
         battles_list.append({
             "battle_id": battle_id,
-            "data": data,
+            "data": data_with_match,
         })
 
     output_path.parent.mkdir(parents=True, exist_ok=True)
@@ -133,7 +135,7 @@ def main():
         epilog="""
 If league_data/league_<league_id>.json does not exist, it is fetched from the API automatically.
 
-Output is a JSON array; each element is { "battle_id": "...", "data": { ... } }.
+Output is a JSON array; each element is { "battle_id": "...", "data": { "match_id": "...", ... } }.
 
 Examples:
   python download_league_data.py 20250002
